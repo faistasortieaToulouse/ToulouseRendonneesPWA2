@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link"
-import { useRouter } from "next/navigation";
+// Remplacement des imports Next.js par des composants génériques
+// import Link from "next/link"
+// import { useRouter } from "next/navigation"; 
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button"
@@ -19,12 +20,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import SocialLoginButtons from "@/components/app/SocialLoginButtons"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { signUpWithEmail } from "@/firebase/auth/auth";
-import { useAuth } from "@/firebase";
+
+// ❌ Suppression de l'ancienne dépendance à l'authentification Firebase :
+// import { useAuth } from "@/firebase";
+
+// ✅ Import de la nouvelle fonction d'inscription basée sur Firestore :
+import { signUpUserToDatabase } from "@/firebase/auth/auth"; 
 
 export default function SignupPage() {
-  const router = useRouter();
-  const auth = useAuth();
+  // L'utilisation de useRouter n'est plus supportée dans cet environnement
+  // const router = useRouter(); 
+  // L'utilisation de useAuth n'est plus nécessaire
+  // const auth = useAuth(); 
+  
   const [identite, setIdentite] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -32,10 +40,12 @@ export default function SignupPage() {
   const [etudiant, setEtudiant] = useState(false);
   const [majeur, setMajeur] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(""); // Ajout d'un état de succès pour feedback
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
 
     if (!majeur) {
       setError("Vous devez certifier être majeur(e) pour vous inscrire.");
@@ -47,9 +57,17 @@ export default function SignupPage() {
     }
 
     try {
-      await signUpWithEmail(auth, { email, password, identite, genre, etudiant, majeur });
-      router.push("/dashboard");
+      // ✅ APPEL DE LA NOUVELLE FONCTION FIRESTORE
+      // On passe les données nécessaires, sans l'objet 'auth'
+      const newUser = await signUpUserToDatabase({ email, password, identite, genre, etudiant, majeur });
+      
+      // Simulation de la redirection après succès (puisque router.push n'est pas disponible)
+      setSuccess(`Compte créé pour ${newUser.identite}! Vous pouvez maintenant vous connecter.`);
+      // router.push("/dashboard"); 
+
     } catch (err: any) {
+      console.error("Erreur d'inscription Firestore:", err);
+      // Afficher le message d'erreur personnalisé de auth.ts
       setError(err.message || "Une erreur est survenue lors de l'inscription.");
     }
   };
@@ -72,6 +90,14 @@ export default function SignupPage() {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
+            {success && (
+                <Alert className="border-green-500 bg-green-50/50 text-green-700">
+                  <AlertCircle className="h-4 w-4 text-green-600" />
+                  <AlertTitle>Succès</AlertTitle>
+                  <AlertDescription>{success}</AlertDescription>
+                </Alert>
+            )}
+            
           <div className="grid gap-2">
             <Label htmlFor="identite">Pseudo (Identité)</Label>
             <Input id="identite" placeholder="RandoFan" required value={identite} onChange={(e) => setIdentite(e.target.value)} />
@@ -114,7 +140,7 @@ export default function SignupPage() {
             </Label>
           </div>
 
-           <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2">
             <Checkbox id="majeur" checked={majeur} onCheckedChange={(checked) => setMajeur(!!checked)} />
             <Label htmlFor="majeur" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
               Je certifie être majeur(e)
@@ -125,7 +151,7 @@ export default function SignupPage() {
             Créer un compte
           </Button>
 
-           <div className="relative my-2">
+            <div className="relative my-2">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t" />
             </div>
@@ -140,9 +166,10 @@ export default function SignupPage() {
         </form>
         <div className="mt-4 text-center text-sm">
           Vous avez déjà un compte ?{" "}
-          <Link href="/login" className="underline">
+          {/* Utilisation de <a> à la place de <Link> */}
+          <a href="/login" className="underline">
             Se connecter
-          </Link>
+          </a>
         </div>
       </CardContent>
     </Card>
